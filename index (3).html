@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Passdown — Shift Reports, Written Automatically</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #0d0d12;
+    --ink-2: #2a2a35;
+    --ink-3: #5a5a6e;
+    --ink-4: #9898aa;
+    --line: #e4e4ec;
+    --line-2: #f0f0f6;
+    --bg: #fafafa;
+    --bg-2: #f3f3f8;
+    --accent: #1a1aff;
+    --accent-light: #ebebff;
+    --success: #00875a;
+    --success-light: #e3fff3;
+    --warning: #b45309;
+    --warning-light: #fef3c7;
+    --danger: #b91c1c;
+    --danger-light: #fee2e2;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Instrument Sans', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(250,250,250,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+    padding: 0 1.5rem;
+    height: 52px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 18px;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+  }
+  .nav-logo span { color: var(--accent); }
+  .nav-tag {
+    font-size: 11px; font-family: 'DM Mono', monospace;
+    color: var(--ink-4); letter-spacing: 0.05em;
+  }
+
+  /* LAYOUT */
+  .container { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+  /* SCREENS */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* SECTION HEADING */
+  .screen-heading {
+    margin-bottom: 1.5rem;
+  }
+  .screen-heading h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 22px;
+    letter-spacing: -0.02em;
+    color: var(--ink); margin-bottom: 4px;
+  }
+  .screen-heading p { font-size: 14px; color: var(--ink-3); }
+
+  /* TABS */
+  .tabs {
+    display: flex; gap: 4px; flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 4px;
+  }
+  .tab {
+    font-size: 12px; font-weight: 500;
+    padding: 6px 14px; border-radius: var(--radius-sm);
+    border: none; background: transparent;
+    color: var(--ink-3); cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'Instrument Sans', sans-serif;
+  }
+  .tab:hover { color: var(--ink); background: white; }
+  .tab.active {
+    background: white; color: var(--ink);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  /* PANELS */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* CARDS */
+  .card {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    margin-bottom: 12px;
+  }
+
+  /* FORM ELEMENTS */
+  .field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 10px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 11px; font-weight: 500; color: var(--ink-3); letter-spacing: 0.04em; text-transform: uppercase; }
+
+  input[type=text], input[type=number], input[type=date], select, textarea {
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 13px; color: var(--ink);
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    outline: none;
+    transition: border-color 0.15s, background 0.15s;
+    width: 100%;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+    background: white;
+  }
+  textarea { resize: vertical; min-height: 72px; line-height: 1.5; }
+
+  /* SECTION LABEL */
+  .sec-label {
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-4); margin: 1rem 0 0.6rem;
+  }
+
+  /* DYNAMIC ROWS */
+  .dynamic-row {
+    display: grid; gap: 6px; margin-bottom: 6px; align-items: flex-start;
+  }
+  .staff-row { grid-template-columns: 1fr 1fr 110px 28px; }
+  .incident-row { grid-template-columns: 64px 100px 1fr 28px; }
+  .handover-row { display: flex; gap: 6px; margin-bottom: 6px; align-items: flex-start; }
+
+  .col-header {
+    font-size: 10px; color: var(--ink-4);
+    font-weight: 500; letter-spacing: 0.04em;
+    text-transform: uppercase; padding-bottom: 4px;
+  }
+
+  .remove-btn {
+    width: 28px; height: 28px; flex-shrink: 0;
+    background: none; border: 1px solid var(--line);
+    border-radius: var(--radius-sm); color: var(--ink-4);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 14px; transition: all 0.15s; margin-top: 1px;
+  }
+  .remove-btn:hover { background: var(--danger-light); border-color: #fca5a5; color: var(--danger); }
+
+  .add-btn {
+    font-size: 12px; font-weight: 500;
+    color: var(--accent); background: var(--accent-light);
+    border: 1px dashed #9999ff;
+    border-radius: var(--radius-sm);
+    padding: 6px 12px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-top: 4px; transition: all 0.15s;
+    font-family: 'Instrument Sans', sans-serif;
+  }
+  .add-btn:hover { background: #ddddf5; }
+
+  /* PRIMARY BUTTON */
+  .btn-primary {
+    width: 100%; padding: 12px;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px; font-weight: 700;
+    letter-spacing: 0.02em;
+    background: var(--ink); color: white;
+    border: none; border-radius: var(--radius);
+    cursor: pointer; display: flex; align-items: center;
+    justify-content: center; gap: 8px;
+    transition: all 0.15s; margin-top: 6px;
+  }
+  .btn-primary:hover { background: var(--ink-2); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(13,13,18,0.15); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .btn-secondary {
+    padding: 10px 16px;
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 13px; font-weight: 500;
+    background: white; color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+    transition: all 0.15s;
+  }
+  .btn-secondary:hover { background: var(--bg-2); }
+
+  .btn-approve {
+    flex: 1; padding: 11px;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px; font-weight: 700;
+    background: var(--success); color: white;
+    border: none; border-radius: var(--radius);
+    cursor: pointer; display: flex; align-items: center;
+    justify-content: center; gap: 6px; transition: all 0.15s;
+  }
+  .btn-approve:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,135,90,0.2); }
+
+  /* LOADING */
+  .loading-wrap { text-align: center; padding: 2rem 0; }
+  .loader {
+    width: 36px; height: 36px;
+    border: 2px solid var(--line);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto 1rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-msg { font-size: 13px; color: var(--ink-3); margin-bottom: 8px; }
+  .loading-sub { font-size: 11px; color: var(--ink-4); font-family: 'DM Mono', monospace; }
+  .progress-bar { height: 2px; background: var(--line); border-radius: 2px; overflow: hidden; margin-top: 16px; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; width: 0%; transition: width 0.5s ease; }
+
+  /* REPORT TEXTAREA */
+  .report-textarea {
+    width: 100%; min-height: 360px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px; line-height: 1.8;
+    color: var(--ink); background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1.25rem; resize: vertical;
+    outline: none; transition: border-color 0.15s;
+  }
+  .report-textarea:focus { border-color: var(--accent); background: white; }
+
+  /* REPORT DISPLAY */
+  .report-display {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px; line-height: 1.8;
+    color: var(--ink); background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1.25rem; white-space: pre-wrap;
+  }
+
+  /* ACTION ROW */
+  .action-row { display: flex; gap: 8px; margin-top: 10px; }
+
+  /* APPROVED BANNER */
+  .approved-banner {
+    background: var(--success-light);
+    border: 1px solid #6ee7b7;
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    display: flex; gap: 12px; align-items: flex-start;
+    margin-bottom: 12px;
+  }
+  .approved-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+  .approved-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--success); margin-bottom: 3px; }
+  .approved-sub { font-size: 13px; color: #065f46; }
+
+  /* PILLS */
+  .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-family: 'DM Mono', monospace;
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: 20px; padding: 3px 10px;
+    color: var(--ink-3); margin-right: 6px; margin-bottom: 8px;
+  }
+
+  /* ERROR */
+  .error-box {
+    background: var(--danger-light); border: 1px solid #fca5a5;
+    border-radius: var(--radius-sm); padding: 10px 14px;
+    font-size: 13px; color: var(--danger); margin-top: 8px;
+  }
+
+  /* NOTES */
+  .note-box {
+    background: var(--warning-light); border: 1px solid #fcd34d;
+    border-radius: var(--radius-sm); padding: 10px 14px;
+    font-size: 12px; color: var(--warning); margin-top: 8px;
+    line-height: 1.5;
+  }
+  .info-box {
+    background: var(--accent-light); border: 1px solid #9999ff;
+    border-radius: var(--radius-sm); padding: 10px 14px;
+    font-size: 12px; color: #3333cc; margin-top: 8px;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 500px) {
+    .staff-row { grid-template-columns: 1fr 1fr; }
+    .staff-row .remove-btn { grid-column: span 2; width: 100%; }
+    .incident-row { grid-template-columns: 1fr 1fr; }
+    .incident-row textarea { grid-column: span 2; }
+    .incident-row .remove-btn { grid-column: span 2; width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Pass<span>down</span></div>
+  <div class="nav-tag">v1.0 — auto-generated shift reports</div>
+</nav>
+
+<div class="container">
+
+  <!-- SCREEN 1: ENTRY -->
+  <div id="screen-entry" class="screen active">
+    <div class="screen-heading">
+      <h1>New shift report</h1>
+      <p>Fill in the shift details — Passdown writes the report for you</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('basics')">Basics</button>
+      <button class="tab" onclick="switchTab('volume')">Volume</button>
+      <button class="tab" onclick="switchTab('staffing')">Staffing</button>
+      <button class="tab" onclick="switchTab('incidents')">Incidents</button>
+      <button class="tab" onclick="switchTab('handover')">Handover</button>
+    </div>
+
+    <div class="card">
+
+      <!-- BASICS -->
+      <div id="panel-basics" class="panel active">
+        <div class="field-grid">
+          <div class="field">
+            <label>Operation / property name</label>
+            <input type="text" id="property" placeholder="e.g. Eagle Pass Bridge, Main St Restaurant" />
+          </div>
+          <div class="field">
+            <label>Industry / type</label>
+            <select id="industry">
+              <option>Border logistics</option>
+              <option>Restaurant / food service</option>
+              <option>Hotel / hospitality</option>
+              <option>Retail</option>
+              <option>Warehouse / logistics</option>
+              <option>Security</option>
+              <option>Healthcare</option>
+              <option>Manufacturing</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-grid">
+          <div class="field">
+            <label>Shift</label>
+            <select id="shift">
+              <option>Day shift — 06:00–14:00</option>
+              <option>Morning shift — 07:00–15:00</option>
+              <option>Swing shift — 14:00–22:00</option>
+              <option>Evening shift — 15:00–23:00</option>
+              <option>Night shift — 22:00–06:00</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Date</label>
+            <input type="date" id="date" />
+          </div>
+        </div>
+        <div class="field-grid">
+          <div class="field">
+            <label>Outgoing supervisor</label>
+            <input type="text" id="sup-out" placeholder="Your name" />
+          </div>
+          <div class="field">
+            <label>Incoming supervisor</label>
+            <input type="text" id="sup-in" placeholder="Relieving supervisor" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Overall shift summary (optional)</label>
+          <textarea id="shift-summary" placeholder="How did the shift go overall? Busy, quiet, any major themes..."></textarea>
+        </div>
+      </div>
+
+      <!-- VOLUME -->
+      <div id="panel-volume" class="panel">
+        <div class="info-box">These numbers will vary by industry. Fill in what applies — skip what doesn't. Passdown adapts the report to your operation type.</div>
+        <div class="field-grid" style="margin-top:12px;">
+          <div class="field"><label>Total transactions / units processed</label><input type="number" id="vol-total" placeholder="e.g. 312 trucks, 180 covers" /></div>
+          <div class="field"><label>Completed / cleared without issue</label><input type="number" id="vol-clear" placeholder="e.g. 287" /></div>
+          <div class="field"><label>Flagged / exceptions</label><input type="number" id="vol-flag" placeholder="e.g. 25" /></div>
+          <div class="field"><label>Unresolved / pending</label><input type="number" id="vol-pending" placeholder="e.g. 4" /></div>
+        </div>
+        <div class="field-grid">
+          <div class="field"><label>Average processing time (min)</label><input type="number" id="avg-time" placeholder="e.g. 38" /></div>
+          <div class="field"><label>Target processing time (min)</label><input type="number" id="target-time" placeholder="e.g. 32" /></div>
+        </div>
+        <div class="field"><label>Volume notes</label><textarea id="vol-notes" placeholder="Any context on the numbers — unusually high volume, delays, seasonal spike..."></textarea></div>
+      </div>
+
+      <!-- STAFFING -->
+      <div id="panel-staffing" class="panel">
+        <div class="sec-label">Staff on shift</div>
+        <div class="dynamic-row staff-row" style="margin-bottom:4px;">
+          <span class="col-header">Name</span>
+          <span class="col-header">Post / role</span>
+          <span class="col-header">Status</span>
+          <span></span>
+        </div>
+        <div id="staff-list"></div>
+        <button class="add-btn" onclick="addStaff()">+ Add staff member</button>
+      </div>
+
+      <!-- INCIDENTS -->
+      <div id="panel-incidents" class="panel">
+        <div class="sec-label">Incidents & exceptions</div>
+        <div class="dynamic-row incident-row" style="margin-bottom:4px;">
+          <span class="col-header">Time</span>
+          <span class="col-header">Severity</span>
+          <span class="col-header">What happened + action taken</span>
+          <span></span>
+        </div>
+        <div id="incident-list"></div>
+        <button class="add-btn" onclick="addIncident()">+ Add incident</button>
+      </div>
+
+      <!-- HANDOVER -->
+      <div id="panel-handover" class="panel">
+        <div class="sec-label">Items for incoming shift</div>
+        <div id="handover-list"></div>
+        <button class="add-btn" onclick="addHandover()">+ Add handover item</button>
+        <div class="sec-label" style="margin-top:1.25rem;">Anything else</div>
+        <div class="field">
+          <textarea id="extra" placeholder="Equipment status, management notes, anything the AI should include that doesn't fit above..."></textarea>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="entry-error"></div>
+    <button class="btn-primary" onclick="generate()">
+      ✦ Generate shift report
+    </button>
+  </div>
+
+  <!-- SCREEN 2: LOADING -->
+  <div id="screen-loading" class="screen">
+    <div class="card">
+      <div class="loading-wrap">
+        <div class="loader"></div>
+        <div class="loading-msg" id="loading-msg">Analysing shift data...</div>
+        <div class="loading-sub">Usually 10–15 seconds</div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: REVIEW -->
+  <div id="screen-review" class="screen">
+    <div class="screen-heading">
+      <h1>Review & approve</h1>
+      <p>Edit anything inline, then approve to finalise</p>
+    </div>
+    <div id="report-pills" style="margin-bottom:4px;"></div>
+    <textarea class="report-textarea" id="report-content" spellcheck="true"></textarea>
+    <div class="action-row">
+      <button class="btn-approve" onclick="approve()">✓ Approve report</button>
+      <button class="btn-secondary" onclick="regenerate()">↺ Regenerate</button>
+      <button class="btn-secondary" onclick="goBack()">← Back</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: APPROVED -->
+  <div id="screen-approved" class="screen">
+    <div class="approved-banner">
+      <div class="approved-icon">✓</div>
+      <div>
+        <div class="approved-title">Report approved</div>
+        <div class="approved-sub" id="approved-meta">Shift report finalised and ready to route or archive.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="sec-label">Final report</div>
+      <div class="report-display" id="final-report"></div>
+    </div>
+    <div class="action-row">
+      <button class="btn-secondary" style="flex:1;" onclick="copyFinal()">⊕ Copy report</button>
+      <button class="btn-secondary" style="flex:1;" onclick="newReport()">+ New report</button>
+    </div>
+    <div class="note-box" style="margin-top:10px;">
+      <strong>Next step:</strong> Paste this into your existing email, log, or documentation system. Future versions will route automatically.
+    </div>
+  </div>
+
+</div>
+
+<script>
+let staffCount = 0, incidentCount = 0, handoverCount = 0;
+
+// Set today's date
+document.getElementById('date').value = new Date().toISOString().split('T')[0];
+
+// Seed initial rows
+addStaff(); addStaff();
+addIncident();
+addHandover(); addHandover();
+
+function switchTab(tab) {
+  const tabs = ['basics','volume','staffing','incidents','handover'];
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', tabs[i] === tab));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function addStaff() {
+  const id = staffCount++;
+  const div = document.createElement('div');
+  div.className = 'dynamic-row staff-row';
+  div.id = 'staff-' + id;
+  div.innerHTML = `
+    <input type="text" placeholder="Full name" id="sname-${id}" />
+    <input type="text" placeholder="Post or role" id="spost-${id}" />
+    <select id="sstatus-${id}">
+      <option>On post</option><option>Late arrival</option>
+      <option>Early leave</option><option>Called out</option><option>Cover</option>
+    </select>
+    <button class="remove-btn" onclick="this.closest('.dynamic-row').remove()" aria-label="Remove">×</button>`;
+  document.getElementById('staff-list').appendChild(div);
+}
+
+function addIncident() {
+  const id = incidentCount++;
+  const div = document.createElement('div');
+  div.className = 'dynamic-row incident-row';
+  div.id = 'inc-' + id;
+  div.innerHTML = `
+    <input type="text" placeholder="07:14" id="itime-${id}" />
+    <select id="isev-${id}">
+      <option>High — hold</option><option>Medium — delay</option>
+      <option>Low — resolved</option><option>Info only</option>
+    </select>
+    <textarea placeholder="What happened and what action was taken..." id="idesc-${id}"></textarea>
+    <button class="remove-btn" onclick="this.closest('.dynamic-row').remove()" aria-label="Remove">×</button>`;
+  document.getElementById('incident-list').appendChild(div);
+}
+
+function addHandover() {
+  const id = handoverCount++;
+  const div = document.createElement('div');
+  div.className = 'handover-row';
+  div.id = 'ho-' + id;
+  div.innerHTML = `
+    <textarea style="flex:1; font-family:inherit; font-size:13px; resize:vertical; min-height:48px; background:var(--bg-2); border:1px solid var(--line); border-radius:6px; padding:8px 10px; outline:none;" placeholder="Item for incoming shift..." id="hotext-${id}"></textarea>
+    <button class="remove-btn" onclick="this.closest('.handover-row').remove()" aria-label="Remove">×</button>`;
+  document.getElementById('handover-list').appendChild(div);
+}
+
+function collectData() {
+  const staff = [];
+  document.querySelectorAll('[id^="sname-"]').forEach(el => {
+    const id = el.id.replace('sname-','');
+    if (el.value.trim()) staff.push({ name: el.value, post: document.getElementById('spost-'+id)?.value||'', status: document.getElementById('sstatus-'+id)?.value||'' });
+  });
+  const incidents = [];
+  document.querySelectorAll('[id^="idesc-"]').forEach(el => {
+    const id = el.id.replace('idesc-','');
+    if (el.value.trim()) incidents.push({ time: document.getElementById('itime-'+id)?.value||'', severity: document.getElementById('isev-'+id)?.value||'', desc: el.value });
+  });
+  const handover = [];
+  document.querySelectorAll('[id^="hotext-"]').forEach(el => { if (el.value.trim()) handover.push(el.value); });
+  return {
+    property: document.getElementById('property').value || 'Operations',
+    industry: document.getElementById('industry').value,
+    shift: document.getElementById('shift').value,
+    date: document.getElementById('date').value,
+    supOut: document.getElementById('sup-out').value,
+    supIn: document.getElementById('sup-in').value,
+    summary: document.getElementById('shift-summary').value,
+    volTotal: document.getElementById('vol-total').value,
+    volClear: document.getElementById('vol-clear').value,
+    volFlag: document.getElementById('vol-flag').value,
+    volPending: document.getElementById('vol-pending').value,
+    avgTime: document.getElementById('avg-time').value,
+    targetTime: document.getElementById('target-time').value,
+    volNotes: document.getElementById('vol-notes').value,
+    staff, incidents, handover,
+    extra: document.getElementById('extra').value
+  };
+}
+
+function buildPrompt(d) {
+  const staffStr = d.staff.length ? d.staff.map(s=>`  • ${s.name} | ${s.post} | ${s.status}`).join('\n') : '  No staff data entered';
+  const incStr = d.incidents.length ? d.incidents.map(i=>`  • ${i.time} | ${i.severity} | ${i.desc}`).join('\n') : '  No incidents recorded';
+  const hoStr = d.handover.length ? d.handover.map(h=>`  • ${h}`).join('\n') : '  No carry-forward items';
+  const now = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+
+  return `You are Passdown, an AI that writes professional shift handover reports for operations managers.
+
+Write a complete, professional shift report. Use ONLY the data provided — do not invent names, unit numbers, or facts not in the input. If a section has no data, write "No data provided."
+
+Format the report with this exact structure using plain text (no markdown, no asterisks, no bullet characters):
+
+SHIFT REPORT
+============
+Property: ${d.property}
+Industry: ${d.industry}
+Shift: ${d.shift}
+Date: ${d.date || 'Not specified'}
+Outgoing supervisor: ${d.supOut || 'Not specified'}
+Incoming supervisor: ${d.supIn || 'Not specified'}
+Generated: ${now} — auto-drafted by Passdown
+
+--------------------------------------------------
+
+SHIFT OVERVIEW
+--------------
+[Write 2-3 sentences summarising the shift based on the overall summary and data provided. Professional tone.]
+
+--------------------------------------------------
+
+VOLUME & THROUGHPUT
+-------------------
+[Write a concise paragraph covering the volume data. Include totals, clearance rate if calculable, exceptions, pending items, processing time vs target. If no volume data, state that.]
+
+--------------------------------------------------
+
+STAFFING & ASSIGNMENTS
+----------------------
+[List each staff member with post and status. Note any coverage gaps, absences, or deviations. Professional format.]
+
+--------------------------------------------------
+
+INCIDENTS & EXCEPTIONS
+-----------------------
+[For each incident: time, severity level, what happened, action taken. If none, state "No incidents recorded this shift."]
+
+--------------------------------------------------
+
+HANDOVER — INCOMING SHIFT
+--------------------------
+[List each carry-forward item clearly and specifically. If none, state "No carry-forward items."]
+
+--------------------------------------------------
+
+SUPERVISOR SIGN-OFF
+-------------------
+Outgoing: ${d.supOut || '[Supervisor]'} — ${d.shift}
+Incoming: ${d.supIn || '[Supervisor]'} — relieving
+
+Report auto-drafted by Passdown. Reviewed and approved by outgoing supervisor.
+
+--------------------------------------------------
+
+DATA PROVIDED:
+Overall summary: ${d.summary || 'None'}
+Volume: total=${d.volTotal||'?'}, cleared=${d.volClear||'?'}, flagged=${d.volFlag||'?'}, pending=${d.volPending||'?'}, avg time=${d.avgTime||'?'}min, target=${d.targetTime||'?'}min
+Volume notes: ${d.volNotes||'None'}
+Staff:
+${staffStr}
+Incidents:
+${incStr}
+Handover items:
+${hoStr}
+Additional context: ${d.extra||'None'}
+
+Write the full report now. Plain text only. Professional, clear, and complete.`;
+}
+
+async function generate() {
+  const data = collectData();
+  document.getElementById('entry-error').innerHTML = '';
+  showScreen('loading');
+
+  const msgs = ['Analysing shift data...','Writing volume summary...','Compiling staffing section...','Formatting incidents...','Building handover notes...','Finalising report...'];
+  let i = 0; let prog = 0;
+  const fill = document.getElementById('progress-fill');
+  const msg = document.getElementById('loading-msg');
+  const interval = setInterval(() => {
+    prog = Math.min(prog + 14, 90);
+    fill.style.width = prog + '%';
+    msg.textContent = msgs[Math.min(i++, msgs.length-1)];
+  }, 1600);
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': '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', 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: buildPrompt(data) }]
+      })
+    });
+    clearInterval(interval);
+    fill.style.width = '100%';
+    const result = await res.json();
+    const text = result.content?.find(b => b.type === 'text')?.text || '';
+    if (!text) throw new Error('Empty response');
+
+    // Pills
+    const pills = [data.property, data.industry, data.shift, data.date].filter(Boolean);
+    document.getElementById('report-pills').innerHTML = pills.map(p => `<span class="pill">${p}</span>`).join('');
+    document.getElementById('report-content').value = text;
+    showScreen('review');
+  } catch(err) {
+    clearInterval(interval);
+    showScreen('entry');
+    document.getElementById('entry-error').innerHTML = `<div class="error-box">Something went wrong generating the report. Please try again.</div>`;
+  }
+}
+
+function approve() {
+  const content = document.getElementById('report-content').value;
+  const now = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('final-report').textContent = content;
+  document.getElementById('approved-meta').textContent = `Approved at ${now}. Ready to copy, email, or archive.`;
+  showScreen('approved');
+}
+
+function regenerate() { generate(); }
+function goBack() { showScreen('entry'); }
+
+function copyFinal() {
+  const text = document.getElementById('final-report').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('[onclick="copyFinal()"]');
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied';
+    setTimeout(() => btn.textContent = orig, 2000);
+  });
+}
+
+function newReport() {
+  ['property','sup-out','sup-in','shift-summary','vol-total','vol-clear','vol-flag','vol-pending','avg-time','target-time','vol-notes','extra'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = el.tagName === 'SELECT' ? el.options[0].value : '';
+  });
+  document.getElementById('date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('staff-list').innerHTML = '';
+  document.getElementById('incident-list').innerHTML = '';
+  document.getElementById('handover-list').innerHTML = '';
+  staffCount = incidentCount = handoverCount = 0;
+  addStaff(); addStaff(); addIncident(); addHandover(); addHandover();
+  switchTab('basics');
+  showScreen('entry');
+}
+</script>
+</body>
+</html>
