@@ -700,9 +700,9 @@ async function generate() {
   }, 1600);
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+     const res = await fetch('https://passdown-proxy.jblanco8188.workers.dev', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': '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', 'anthropic-version': '2023-06-01' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
